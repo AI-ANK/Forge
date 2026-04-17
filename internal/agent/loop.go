@@ -21,16 +21,24 @@ type Action struct {
 }
 
 type Config struct {
-	Model     string
-	Goal      string
-	Cwd       string
-	MaxTurns  int
-	Recorder  *session.Recorder
-	LLM       llm.Adapter
-	Tools     *tools.Registry
-	Rng       *rng.Source
-	OnTurn    func(turn int, a Action)      // UI hook, nil-safe
-	OnResult  func(turn int, result string) // UI hook, nil-safe
+	Model    string
+	Goal     string
+	Cwd      string
+	MaxTurns int
+	Recorder *session.Recorder
+	LLM      llm.Adapter
+	Tools    *tools.Registry
+	Rng      *rng.Source
+	OnTurn   func(turn int, a Action)      // UI hook, nil-safe
+	OnResult func(turn int, result string) // UI hook, nil-safe
+
+	// InitMessages, if non-nil, seeds the chat history instead of the
+	// default [system, user-goal] construction. Used by fork to resume
+	// from a parent session's reconstructed state.
+	InitMessages []llm.Message
+	// InitTurn is the starting turn number (affects per-turn seed).
+	// Defaults to 1 when zero.
+	InitTurn int
 }
 
 // Run executes the ReAct loop until the agent emits a final or MaxTurns is hit.
@@ -38,17 +46,27 @@ func Run(ctx context.Context, cfg Config) (string, error) {
 	if cfg.MaxTurns <= 0 {
 		cfg.MaxTurns = 25
 	}
-	system := SystemPrompt(cfg.Tools, cfg.Goal, cfg.Cwd)
-	messages := []llm.Message{
-		{Role: "system", Content: system},
-		{Role: "user", Content: cfg.Goal},
-	}
-	// Record the initial user message so replay starts from the same state.
-	if err := cfg.Recorder.Record(session.KindUserMsg, map[string]string{"goal": cfg.Goal}); err != nil {
-		return "", err
+	startTurn := cfg.InitTurn
+	if startTurn <= 0 {
+		startTurn = 1
 	}
 
-	for turn := 1; turn <= cfg.MaxTurns; turn++ {
+	var messages []llm.Message
+	if cfg.InitMessages != nil {
+		messages = append([]llm.Message{}, cfg.InitMessages...)
+	} else {
+		system := SystemPrompt(cfg.Tools, cfg.Goal, cfg.Cwd)
+		messages = []llm.Message{
+			{Role: "system", Content: system},
+			{Role: "user", Content: cfg.Goal},
+		}
+		if err := cfg.Recorder.Record(session.KindUserMsg, map[string]string{"goal": cfg.Goal}); err != nil {
+			return "", err
+		}
+	}
+
+	endTurn := startTurn + cfg.MaxTurns - 1
+	for turn := startTurn; turn <= endTurn; turn++ {
 		req := llm.Request{
 			Model:       cfg.Model,
 			Messages:    messages,

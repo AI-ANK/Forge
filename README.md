@@ -69,10 +69,34 @@ forge replay: done — Added hello.go and a passing test.
 |---|---|
 | `forge run "<goal>"` | Run the agent on a goal. Records to `.forge/sessions.forge`. |
 | `forge replay <id>` | Walk a recorded session step by step. No LLM or tools re-run. |
+| `forge fork <id> --at-turn N "<new-guidance>"` | Replay turns 1..N from the log (free), then go live from turn N+1 with your new guidance. |
+| `forge share <id>` | Export a session to a self-contained `.forge` file others can replay. |
 | `forge sessions` | List recorded sessions in the local store. |
-| `forge fork <id> --at-step N "<prompt>"` | (roadmap) Replay to step N, then go live from there. |
-| `forge bisect <id>` | (roadmap) Binary-search which step broke a check. |
-| `forge share <id>` | (roadmap) Emit a self-contained `.forge` file for others to replay. |
+| `forge bisect <id>` | (roadmap) Binary-search which turn broke a check. |
+
+## Fork demo
+
+Run an agent, watch it go down a dead end at turn 5, fork with new guidance — and only pay for one additional turn:
+
+```bash
+$ forge run "add rate limiting to the /api/foo endpoint"
+[turn 1..4 …]
+[turn 5] applying token bucket
+  → edit_file {...}
+  ← ERROR: old string matched 3 times
+
+# You know the right call is a simpler approach. Fork at turn 4.
+$ forge fork 3930… --at-turn 4 "use middleware.RateLimiter from pkg/httputil instead"
+forge fork: replaying parent 3930… up to turn 4 (free, no model calls)
+forge fork: resuming live at turn 5 with new guidance: use middleware.RateLimiter …
+[turn 5] wire middleware
+  → edit_file {...}
+  ← edited server.go (2.1 KB)
+[turn 6] done
+forge fork: done — rate limiting added via middleware
+```
+
+You paid one live turn instead of re-running the full 4-turn context.
 
 ## How determinism works
 
