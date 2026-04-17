@@ -26,6 +26,43 @@ go install github.com/AI-ANK/Forge/cmd/forge@latest
 
 A prebuilt Homebrew tap, Linux packages, and Windows binaries are on the roadmap.
 
+## Try it in 60 seconds, zero config
+
+Forge ships with a built-in **mock** LLM so you can exercise every command —
+run, replay, fork, share, bisect — without installing Ollama or holding any
+API key. The mock just plays back a fixed script; the recording, replay, and
+fork machinery is real.
+
+```bash
+# build from source (only Go required, no other deps)
+git clone https://github.com/AI-ANK/Forge && cd Forge
+go build -o forge ./cmd/forge
+
+# run a scripted session in a fresh dir
+mkdir /tmp/forge-demo && cd /tmp/forge-demo
+../Forge/forge run --model mock-hello "write hello.go and a test"
+# → writes hello.go, hello_test.go, verifies, finishes
+
+# replay the recording (fast, no "LLM" calls)
+../Forge/forge replay <id>
+
+# export it as a shareable file
+../Forge/forge share <id> -o demo.forge
+../Forge/forge replay demo.forge       # works anywhere
+
+# fork mid-session with different guidance
+../Forge/forge fork <id> --at-turn 2 --model mock-hello "try a different angle"
+
+# bisect a session that introduces a regression at turn 3
+cd /tmp && mkdir forge-bisect && cd forge-bisect
+../Forge/forge run --model mock-break "demo a regression"
+../Forge/forge bisect <id> --good 1 --bad 4 -- sh -c 'grep -q good answer.txt'
+# → first bad turn is 3
+```
+
+For real coding work, point `--model` at a live provider — see the next
+section and the **Cloud escalation** section below.
+
 ## 30-second demo
 
 ```bash

@@ -17,6 +17,7 @@ type ProviderConfig struct {
 
 // Pick returns an Adapter based on the model name prefix:
 //
+//	mock-*    → built-in scripted adapter (no network, no API key)
 //	claude-*  → Anthropic    (requires ANTHROPIC_API_KEY)
 //	gpt-*,o*  → OpenAI       (requires OPENAI_API_KEY)
 //	anything else → Ollama   (local)
@@ -24,6 +25,8 @@ type ProviderConfig struct {
 // Returns an error if the matched provider's API key is missing.
 func Pick(model string, cfg ProviderConfig) (Adapter, error) {
 	switch {
+	case isMockModel(model):
+		return NewMock(model)
 	case strings.HasPrefix(model, "claude-"):
 		key := cfg.AnthropicAPIKey
 		if key == "" {
