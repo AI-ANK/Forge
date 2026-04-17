@@ -72,7 +72,7 @@ forge replay: done — Added hello.go and a passing test.
 | `forge fork <id> --at-turn N "<new-guidance>"` | Replay turns 1..N from the log (free), then go live from turn N+1 with your new guidance. |
 | `forge share <id>` | Export a session to a self-contained `.forge` file others can replay. |
 | `forge sessions` | List recorded sessions in the local store. |
-| `forge bisect <id>` | (roadmap) Binary-search which turn broke a check. |
+| `forge bisect <id> -- <check-cmd>` | Binary-search which turn caused a check command to start failing. |
 
 ## Fork demo
 
@@ -97,6 +97,31 @@ forge fork: done — rate limiting added via middleware
 ```
 
 You paid one live turn instead of re-running the full 4-turn context.
+
+## Bisect demo
+
+Your test suite passed before the agent ran and fails now. Which turn broke it?
+
+```bash
+$ forge bisect 3930… --good 0 --bad 12 -- go test ./...
+forge bisect: session 3930…  turns=12  good=0  bad=12
+forge bisect: check: [go test ./...]
+
+  turn 0:  PASS (good endpoint)
+  turn 12: FAIL (bad endpoint)
+  turn 6:  PASS
+  turn 9:  FAIL
+  turn 7:  PASS
+  turn 8:  FAIL
+
+forge bisect: first bad turn is 8
+  [turn 8] refactor validateToken to share state
+    → edit_file {"path":"auth.go","old":"…","new":"…"}
+```
+
+For each candidate turn, forge reconstructs the workspace by re-applying
+recorded `write_file` / `edit_file` calls into a fresh temp dir, then runs your
+check command there. `log₂(12) ≈ 4` checks, not 12.
 
 ## Cloud escalation (opt-in)
 
@@ -130,7 +155,7 @@ This means a `.forge` file is a complete, hermetic record of a run. You can repl
 
 ## Status
 
-Milestone 0 (run + replay) is working. The full fork/bisect/share UX and cloud-model escalation are the next milestones. Track progress in the planning doc.
+Milestones 0–3 are shipped: run, replay, fork, share, cloud escalation, and bisect. Next up: TUI polish (streaming + step-through replay keybinds) and a curated set of canned `.forge` demos that replay in CI to catch determinism drift.
 
 ## Stack
 

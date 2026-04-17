@@ -17,5 +17,6 @@ func Root() *cobra.Command {
 	root.AddCommand(forkCmd())
 	root.AddCommand(shareCmd())
 	root.AddCommand(sessionsCmd())
+	root.AddCommand(bisectCmd())
 	return root
 }
