@@ -98,6 +98,25 @@ forge fork: done — rate limiting added via middleware
 
 You paid one live turn instead of re-running the full 4-turn context.
 
+## Cloud escalation (opt-in)
+
+Forge defaults to local. When a task needs a heavier model, pass `--model` — Forge picks the provider automatically from the model name:
+
+```bash
+# Anthropic (needs ANTHROPIC_API_KEY)
+$ forge run --model claude-sonnet-4-6 "refactor auth to use JWT"
+
+# OpenAI (needs OPENAI_API_KEY)
+$ forge run --model gpt-4.1 "refactor auth to use JWT"
+
+# Local (default)
+$ forge run "refactor auth to use JWT"
+```
+
+Cloud runs record the same way. A Claude session replays offline with zero API calls, forks for the cost of one turn, and exports to a portable `.forge` file for teammates. The record-and-replay substrate is provider-agnostic.
+
+Set `ANTHROPIC_BASE_URL` / `OPENAI_BASE_URL` to point at a gateway or proxy.
+
 ## How determinism works
 
 Every non-deterministic source routes through the session recorder:

@@ -79,9 +79,12 @@ func runCmd() *cobra.Command {
 				tools.Glob{Root: cwd},
 			)
 
-			ada := llm.NewOllama(ollamaURL)
+			ada, err := llm.Pick(model, llm.ProviderConfig{OllamaURL: ollamaURL})
+			if err != nil {
+				return err
+			}
 
-			fmt.Printf("forge: session %s (seed %d, model %s)\n", sessID, seed, model)
+			fmt.Printf("forge: session %s (seed %d, model %s, provider %s)\n", sessID, seed, model, ada.Name())
 			fmt.Printf("forge: goal: %s\n\n", goal)
 
 			onTurn := func(turn int, a agent.Action) {

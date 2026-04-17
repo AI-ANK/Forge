@@ -93,7 +93,10 @@ guidance. The fork is a self-contained new session.`,
 			fmt.Printf("forge fork: child session %s (model %s)\n\n", childID, model)
 
 			src := rng.New(childSeed, time.Unix(0, 0).UTC())
-			ada := llm.NewOllama(ollamaURL)
+			ada, err := llm.Pick(model, llm.ProviderConfig{OllamaURL: ollamaURL})
+			if err != nil {
+				return err
+			}
 
 			onTurn := func(turn int, a agent.Action) {
 				if a.Final != "" {
